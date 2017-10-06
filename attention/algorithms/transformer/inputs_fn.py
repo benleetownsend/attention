@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import shutil
 
+
 def filter_and_modify_dialogue(dialogue):
     # Remove single role dialogues
     if len(set([utterance.metadata["role"] for utterance in dialogue.utterances])) < 2:
@@ -48,6 +49,7 @@ def create_copy_task_files(context_filename, answer_filename, vocab_size, num_ex
 
     shutil.copyfile(context_filename, answer_filename)
 
+
 def create_textline_file(dialogue_gen, context_filename, answer_filename):
     with open(context_filename, "w") as context_file, open(answer_filename, "w") as answer_file:
         for features in create_sample(dialogue_gen):
@@ -55,22 +57,25 @@ def create_textline_file(dialogue_gen, context_filename, answer_filename):
             answer_file.write(" ".join([str(x) for x in features["answer"]]) + "\n")
 
 
-def get_input_fn(batch_size, num_epochs, context_filename, answer_filename, max_sequence_len):
+def get_input_fn(batch_size, num_epochs, context_filename, max_sequence_len, answer_filename=None):
+    def map_dataset(dataset):
+        dataset = dataset.map(lambda string: tf.string_split([string]).values)
+        dataset = dataset.map(lambda token: tf.string_to_number(token, tf.int64))
+        dataset = dataset.map(lambda tokens: (tokens, tf.size(tokens)))
+        dataset = dataset.map(lambda tokens, size: (tokens[:max_sequence_len], tf.minimum(size, max_sequence_len)))
+        return dataset
+
     def input_fn():
         source_dataset = tf.contrib.data.TextLineDataset(context_filename)
-        target_dataset = tf.contrib.data.TextLineDataset(answer_filename)
-
-        def map_dataset(dataset):
-            dataset = dataset.map(lambda string: tf.string_split([string]).values)
-            dataset = dataset.map(lambda token: tf.string_to_number(token, tf.int64))
-            dataset = dataset.map(lambda tokens: (tokens, tf.size(tokens)))
-            dataset = dataset.map(lambda tokens, size: (tokens[:max_sequence_len], tf.minimum(size, max_sequence_len)))
-            return dataset
-
         source_dataset = map_dataset(source_dataset)
-        target_dataset = map_dataset(target_dataset)
 
-        dataset = tf.contrib.data.Dataset.zip((source_dataset, target_dataset))
+        if answer_filename is not None:
+            target_dataset = tf.contrib.data.TextLineDataset(answer_filename)
+            target_dataset = map_dataset(target_dataset)
+            dataset = tf.contrib.data.Dataset.zip((source_dataset, target_dataset))
+        else:
+            dataset = tf.contrib.data.Dataset.zip((source_dataset, source_dataset))
+
         dataset = dataset.repeat(num_epochs)
         dataset = dataset.padded_batch(batch_size,
                                        padded_shapes=((tf.TensorShape([max_sequence_len]), tf.TensorShape([])),

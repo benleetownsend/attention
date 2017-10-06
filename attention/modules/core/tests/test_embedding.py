@@ -1,13 +1,13 @@
 import tensorflow as tf
-from attention.modules import PositionnalEmbedding
+from attention.modules import PositionalEmbedding
 
 class TestPositionnalEmbedding(tf.test.TestCase):
     def setUp(self):
         super(TestPositionnalEmbedding, self).setUp()
         self.vocab_size = 100
         self.embed_dim = 123
-        self.module = PositionnalEmbedding(vocab_size=self.vocab_size,
-                                           embed_dim=self.embed_dim)
+        self.module = PositionalEmbedding(vocab_size=self.vocab_size,
+                                          embed_dim=self.embed_dim)
 
     def test_build(self):
         batch_size = 32

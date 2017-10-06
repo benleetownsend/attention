@@ -33,7 +33,7 @@ else
 fi
 
 echo "Running Task Data Generation"
-python3 attention/services/create_copy_task/create_copy_task.py --output_dir $OUTPUT_DIR --config $TASK_CONFIG
+#python3 attention/services/create_copy_task/create_copy_task.py --output_dir $OUTPUT_DIR --config $TASK_CONFIG
 echo "Run Task Data Generation"
 
 echo "Run Attention Traininig"

@@ -3,6 +3,8 @@ import json
 import shutil
 import os
 
+from collections import namedtuple
+
 from attention.utils.config import AttrDict
 from attention.algorithms.transformer.inputs_fn import create_textline_file
 

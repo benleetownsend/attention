@@ -1,18 +1,18 @@
 import sonnet as snt
-import tensorflow as tf
-from copy import deepcopy
 from ..encoders import Encoder
-from ..decoders import Decoder
+from ..decoders import Decoder, BeamSearchDecoder
+from tensorflow.python.estimator.model_fn import ModeKeys
+from attention.modules.core.embedding import PositionalEmbedding
 
 
 class TransformerModule(snt.AbstractModule):
-    def __init__(self, params):
+    def __init__(self, params, mode_key):
         super(TransformerModule, self).__init__(name="transformer")
         self.params = params
+        self.mode_key = mode_key
 
-    def _build(self, features):
+    def _build(self, features, output_projection=None):
         encoder_inputs, encoder_length = features[0]
-        decoder_inputs, decoder_length = features[1]
 
         encoder = Encoder(
             params=self.params.encoder_params.params,
@@ -24,14 +24,22 @@ class TransformerModule(snt.AbstractModule):
         decoder = Decoder(
             params=self.params.decoder_params.params,
             block_params=self.params.decoder_params.decoder_block_params,
-            embed_params=self.params.decoder_params.embed_params
+            embed_params=self.params.decoder_params.embed_params,
         )
 
-        pad_token = self.params.get("pad_token", 0)
-        labels = tf.concat(
-            [decoder_inputs[:, 1:], tf.expand_dims(tf.ones_like(decoder_inputs[:, 0]), axis=-1) * pad_token], axis=-1)
+        decoder_embeddings = PositionalEmbedding(**self.params.decoder_params.embed_params)
 
-        loss, _ = decoder(inputs=decoder_inputs, sequence_length=decoder_length, labels=labels,
-                          encoder_output=encoder_output, encoder_sequence_length=encoder_length,
-                          embedding_lookup=positional_embedding)
-        return loss
+        if self.mode_key == ModeKeys.PREDICT:
+            bs_decoder = BeamSearchDecoder(decoder=decoder)
+            logits = bs_decoder(encoder_output,
+                                max_sequence_length=self.params.decoder_params.max_sequence_length,
+                                beam_size=self.params.decoder_params.beam_size,
+                                output_projection=output_projection,
+                                embedding_lookup=decoder_embeddings)
+
+        else:
+            decoder_inputs, decoder_length = features[1]
+            logits = decoder(inputs=decoder_inputs[:, :-1], sequence_length=decoder_length,
+                             encoder_output=encoder_output, encoder_sequence_length=encoder_length,
+                             embedding_lookup=decoder_embeddings, output_projection=output_projection)
+        return logits

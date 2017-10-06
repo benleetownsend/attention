@@ -37,19 +37,22 @@ class TrainAttention(object):
         parsed_args = parser.parse_args()
         return parsed_args
 
-
     def main(self):
         """Initializes a model and starts training using the args provided
         """
 
         params = self.config.model_params
+        params.vocab_size = self._metadata.vocab_size
+        params.max_sequence_len = params.decoder_params.embed_params.max_sequence_length
+        params.decoder_params.max_sequence_length = params.max_sequence_len
         params.pad_token = self._metadata.pad_token
         params.encoder_params.embed_params.vocab_size = \
             params.decoder_params.embed_params.vocab_size = \
             params.decoder_params.params.vocab_size = self._metadata.vocab_size
         estimator_params = self.config.estimator_params
         estimator_params.model_dir = self.output_dir
-        estimator_run_config = RunConfig().replace(**estimator_params)
+        estimator_run_config = RunConfig()
+        estimator_run_config = estimator_run_config.replace(**estimator_params)
         model = TransformerAlgorithm(estimator_run_config=estimator_run_config, params=params)
 
         if self.datasets.valid_data_dir is not None:
@@ -57,10 +60,13 @@ class TrainAttention(object):
         else:
             self.train(model=model)
 
+        for output in self.inferrence(model=model):
+            print(output)
+
     def train(self, model):
         model.train(train_params=self.config.train_params,
-                                 train_context_filename=os.path.join(self.datasets.train_data_dir, "context.txt"),
-                                 train_answer_filename=os.path.join(self.datasets.train_data_dir, "answer.txt"))
+                    train_context_filename=os.path.join(self.datasets.train_data_dir, "context.txt"),
+                    train_answer_filename=os.path.join(self.datasets.train_data_dir, "answer.txt"))
 
     def train_and_evaluate(self, model):
         model.train_and_evaluate(train_params=self.config.train_params,
@@ -69,6 +75,10 @@ class TrainAttention(object):
                                  validation_params=self.config.train_params,
                                  validation_context_filename=os.path.join(self.datasets.valid_data_dir, "context.txt"),
                                  validation_answer_filename=os.path.join(self.datasets.valid_data_dir, "answer.txt"))
+
+    def inferrence(self, model):
+        return model.inferrence(train_params=self.config.train_params,
+                                context_filename=os.path.join(self.datasets.valid_data_dir, "context.txt"))
 
 
 if __name__ == '__main__':

@@ -8,45 +8,52 @@
         "dropout_rate": 0.3
       },
       "embed_params": {
-        "embed_dim": 128
+        "embed_dim": 128,
+        "max_sequence_length": 50
       },
       "params": {
         "dropout_rate": 0.3,
-        "num_blocks": 4
+        "num_blocks": 2
       }
     },
     "decoder_params": {
+      "beam_size":8,
       "decoder_block_params": {
         "num_heads": 8,
         "hidden_size": 512,
         "dropout_rate": 0.3
       },
       "embed_params": {
-        "embed_dim": 128
+        "embed_dim": 128,
+        "max_sequence_length": 50
       },
       "params": {
         "dropout_rate": 0.3,
-        "num_blocks": 4 
+        "num_blocks": 2,
+        "bos": 0,
+        "eos": 0
       }
     }
   },
   "train_params": {
-    "learning_rate": 0.001,
+    "max_sequence_len":50,
+    "learning_rate": 0.01,
     "clip_gradients": 10.0,
     "batch_size": 32,
     "num_epochs": 50,
-    "steps": null
+    "steps": 100000
   },
-  
   "validation_params": {
     "batch_size": 32,
     "num_epochs": 1,
     "steps": 100,
-    "min_eval_frequency": 1000
+    "min_eval_frequency": 1000,
+    "max_sequence_len":50
   },
   "estimator_params": {
     "save_summary_steps": 500,
     "save_checkpoints_steps": 500,
-    "model_dir": null
+    "log_step_count_steps": 10,
+    "model_dir": "save"
   }
 }

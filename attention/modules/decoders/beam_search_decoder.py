@@ -38,9 +38,9 @@ class LogProbHeuristic:
     @staticmethod
     def twod_top_k(input_logprobs, k):
         values, indices = tf.nn.top_k(tf.reshape(input_logprobs, shape=[-1]), k=k)
-        beams = tf.mod(indices, input_logprobs.shape[0])
-        ids = tf.cast(tf.floordiv(indices, input_logprobs.shape[0]), dtype=tf.int32)
-        ids = tf.cast(ids, dtype=tf.int32)
+        ids = tf.mod(indices, input_logprobs.shape[1])
+        beams = tf.cast(tf.floordiv(indices, input_logprobs.shape[1]), dtype=tf.int32)
+        beams = tf.cast(beams, dtype=tf.int32)
         return ids, beams, values
 
     def standard_bs_heuristic(self, decoder_output, beams, alpha=0.2):  # takes bs, sequence_lengths, projection_dim
